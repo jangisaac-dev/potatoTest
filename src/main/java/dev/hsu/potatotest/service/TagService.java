@@ -1,22 +1,18 @@
 package dev.hsu.potatotest.service;
 
-import dev.hsu.potatotest.domain.ContentSingleModel;
-import dev.hsu.potatotest.domain.TagSingleModel;
+import dev.hsu.potatotest.domain.TagModel;
 import dev.hsu.potatotest.repo.TagRepository;
-import dev.hsu.potatotest.repo.TagSingleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Service
 public class TagService {
 
     @Autowired
-    private TagSingleRepository tagRepository;
+    private TagRepository tagRepository;
 
 
 //
@@ -43,25 +39,23 @@ public class TagService {
 //        return result;
 //    }
 //
-    public List<TagSingleModel> createTagList(final List<TagSingleModel> modelList) {
-        List<TagSingleModel> result = tagRepository.saveAll(modelList);
-        tagRepository.flush();
+    public List<TagModel> createTagList(final List<TagModel> modelList) {
+        List<TagModel> result = tagRepository.saveAllAndFlush(modelList);
         return result;
     }
 
-    public TagSingleModel createTag(final TagSingleModel createTagSingleModel) {
-        if(createTagSingleModel == null) throw new IllegalArgumentException("Tag item cannot be null");
-        if (tagRepository.findAllByContentId(createTagSingleModel.getId()).size() >= 5) {
+    public TagModel createTag(final TagModel createTagModel) {
+        if(createTagModel == null) throw new IllegalArgumentException("Tag item cannot be null");
+        if (tagRepository.findAllByContentId(createTagModel.getId()).size() >= 5) {
             throw new IllegalArgumentException("Tag item cannot be more than 5");
         }
-        TagSingleModel result = tagRepository.save(createTagSingleModel);
-        tagRepository.flush();
+        TagModel result = tagRepository.saveAndFlush(createTagModel);
         return result;
     }
 
-    public List<TagSingleModel> updateTagList(Long contentId, List<String> models) {
-        List<TagSingleModel> originList = tagRepository.findAllByContentId(contentId);
-        List<TagSingleModel> inputList = new ArrayList<>();
+    public List<TagModel> updateTagList(Long contentId, List<String> models) {
+        List<TagModel> originList = tagRepository.findAllByContentId(contentId);
+        List<TagModel> inputList = new ArrayList<>();
 
         int lostCnt = originList.size() - models.size();
         if (lostCnt > 0) {
@@ -74,19 +68,17 @@ public class TagService {
 
         for (int i = 0; i < models.size(); i++) {
             String tagName = models.get(i);
-            TagSingleModel TagSingleModel;
+            TagModel TagModel;
             if (i >= originList.size()) {
-                TagSingleModel = new TagSingleModel(contentId, tagName);
+                TagModel = new TagModel(contentId, tagName);
             }
             else {
-                TagSingleModel = originList.get(i);
-                TagSingleModel.setTagName(tagName);
+                TagModel = originList.get(i);
+                TagModel.setTagName(tagName);
             }
-            inputList.add(TagSingleModel);
+            inputList.add(TagModel);
         }
-        List<TagSingleModel> result = tagRepository.saveAll(inputList);
-        tagRepository.flush();
-        return result;
+        return tagRepository.saveAllAndFlush(inputList);
     }
     public void deleteTagById(final Long id) {
         tagRepository.deleteById(id);
@@ -94,14 +86,14 @@ public class TagService {
     }
 
     public void deleteTagByContentId(final Long id) {
-        List<TagSingleModel> list = tagRepository.findAllByContentId(id);
-        for (TagSingleModel TagSingleModel : list) {
-            tagRepository.deleteById(TagSingleModel.getId());
+        List<TagModel> list = tagRepository.findAllByContentId(id);
+        for (TagModel TagModel : list) {
+            tagRepository.deleteById(TagModel.getId());
         }
         tagRepository.flush();
     }
 
-    public List<TagSingleModel> findAllByContentId(final Long id) {
+    public List<TagModel> findAllByContentId(final Long id) {
         return tagRepository.findAllByContentId(id);
     }
 

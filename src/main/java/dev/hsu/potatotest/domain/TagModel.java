@@ -1,24 +1,18 @@
 package dev.hsu.potatotest.domain;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
-import java.time.LocalDateTime;
-
+//foreign key remove version
 @Entity(name = "tag_model")
-@Schema(description = "Tag Model For Content Model")
+@Schema(description = "Tag Model For removed fk Content Model DAO")
 public class TagModel {
 
     @Id @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
-    @ManyToOne
-    @JsonIgnore
-    private ContentModel contentModel;
+    private Long contentId;
 
     @NotNull
     private String tagName;
@@ -30,12 +24,10 @@ public class TagModel {
         this.tagName = tagName;
     }
 
-    public TagModel(ContentModel contentModel, String tagName) {
-        this.contentModel = contentModel;
+    public TagModel(Long contentId, String tagName) {
+        this.contentId = contentId;
         this.tagName = tagName;
     }
-
-
 
     public Long getId() {
         return id;
@@ -45,12 +37,12 @@ public class TagModel {
         this.id = id;
     }
 
-    public ContentModel getContentModel() {
-        return contentModel;
+    public Long getContentId() {
+        return contentId;
     }
 
-    public void setContentModel(ContentModel contentModel) {
-        this.contentModel = contentModel;
+    public void setContentId(Long contentId) {
+        this.contentId = contentId;
     }
 
     public String getTagName() {

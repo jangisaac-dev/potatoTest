@@ -1,17 +1,11 @@
 package dev.hsu.potatotest.controller;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import dev.hsu.potatotest.domain.ContentSingleModel;
-import dev.hsu.potatotest.domain.ContentSingleModel;
+import dev.hsu.potatotest.domain.ContentModel;
 import dev.hsu.potatotest.domain.TagModel;
-import dev.hsu.potatotest.domain.TagSingleModel;
 import dev.hsu.potatotest.dtos.ContentDTO;
 import dev.hsu.potatotest.service.ContentService;
 import dev.hsu.potatotest.service.TagService;
-import dev.hsu.potatotest.utils.LocalDateTimeSerializer;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -24,7 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -41,39 +34,41 @@ public class MainController {
 
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "success", content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = ContentSingleModel.class))
+                    array = @ArraySchema(schema = @Schema(implementation = ContentModel.class))
             )),
             @ApiResponse(responseCode = "404", description = "not found data")
     })
     @GetMapping("/list")
     public ResponseEntity getList(@RequestParam(value="query", required = false, defaultValue="false") boolean query) {
-        List<ContentSingleModel> ContentSingleModels = contentService.getContents(query);
-        if (!ContentSingleModels.isEmpty()) {
-            return ResponseEntity.ok(ContentSingleModels);
+        List<ContentModel> contentModels = contentService.getContents(query);
+        if (!contentModels.isEmpty()) {
+            return ResponseEntity.ok(contentModels);
         }
         return ResponseEntity.notFound().build();
     }
 
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "success", content = @Content(
-                    array = @ArraySchema(schema = @Schema(implementation = ContentSingleModel.class))
+                    array = @ArraySchema(schema = @Schema(implementation = ContentModel.class))
             )),
             @ApiResponse(responseCode = "404", description = "not found data")
     })
     @GetMapping("/getContent/{id}")
     public ResponseEntity getContent(@PathVariable("id") Long id,
                                      @RequestParam(value="query", required = false, defaultValue="false") boolean query) {
-        Optional<ContentSingleModel> result = contentService.getContentById(id, query);
-        if (result.isEmpty()) {
+        Optional<ContentModel> content = contentService.getContentById(id, query);
+        if (content.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(new ContentDTO(result.get(), tagService.findAllByContentId(result.get().getId())));
+        ContentDTO result = (ContentDTO) content.get();
+        result.setTagList(tagService.findAllByContentId(content.get().getId()));
+        return ResponseEntity.ok(result);
     }
 
 
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "success", content = @Content(
-                    schema = @Schema(implementation = ContentSingleModel.class)
+                    schema = @Schema(implementation = ContentModel.class)
             )),
             @ApiResponse(responseCode = "503", description = "too many tags failed"),
     })
@@ -88,16 +83,16 @@ public class MainController {
             return ResponseEntity.status(504).body("too many tags"); // code 외부 정의 생략
         }
 
-        ContentSingleModel result = contentService.createContent(new ContentSingleModel(title, content));
-        ContentDTO contentDTO = new ContentDTO(result);
+        ContentModel result = contentService.createContent(new ContentModel(title, content));
+        ContentDTO contentDTO = (ContentDTO) result;
 
         if (tags != null) {
             System.out.println("tag : " + tags.size());
-            ArrayList<TagSingleModel> tagList = new ArrayList<>();
+            ArrayList<TagModel> tagList = new ArrayList<>();
             for (String tag : tags) {
-                tagList.add(new TagSingleModel(result.getId(), tag));
+                tagList.add(new TagModel(result.getId(), tag));
             }
-            List<TagSingleModel> tagResult = tagService.createTagList(tagList);
+            List<TagModel> tagResult = tagService.createTagList(tagList);
             contentDTO.setTagList(tagResult);
         }
 
@@ -109,7 +104,7 @@ public class MainController {
 
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "success", content = @Content(
-                    schema = @Schema(implementation = ContentSingleModel.class)
+                    schema = @Schema(implementation = ContentModel.class)
             )),
             @ApiResponse(responseCode = "404", description = "not found data")
     })
@@ -123,18 +118,20 @@ public class MainController {
                                @RequestParam(value="query", required = false, defaultValue="false") boolean query,
                                @RequestParam @Nullable HashSet<String> tags
     ) {
-        ContentSingleModel result = contentService.updateContent(id, new ContentSingleModel(title, content), query);
+        ContentModel contentModel = contentService.updateContent(id, new ContentModel(title, content), query);
         if (tags != null) {
-            tagService.updateTagList(result.getId(), tags.stream().toList());
+            tagService.updateTagList(contentModel.getId(), tags.stream().toList());
         }
         else {
-            tagService.deleteTagByContentId(result.getId());
+            tagService.deleteTagByContentId(contentModel.getId());
         }
-        return ResponseEntity.ok(new ContentDTO(result, tagService.findAllByContentId(result.getId())));
+        ContentDTO result = (ContentDTO) contentModel;
+        result.setTagList(tagService.findAllByContentId(result.getId()));
+        return ResponseEntity.ok(result);
     }
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "success", content = @Content(
-                    schema = @Schema(implementation = ContentSingleModel.class)
+                    schema = @Schema(implementation = ContentModel.class)
             )),
             @ApiResponse(responseCode = "404", description = "not found data")
     })
@@ -154,8 +151,10 @@ public class MainController {
         else {
             tagService.deleteTagByContentId(id);
         }
-        ContentSingleModel result = contentService.updateContent(id, new ContentSingleModel(title, content), query);
-        return ResponseEntity.ok(new ContentDTO(result, tagService.findAllByContentId(result.getId())));
+        ContentModel contentModel = contentService.updateContent(id, new ContentModel(title, content), query);
+        ContentDTO result = (ContentDTO) contentModel;
+        result.setTagList(tagService.findAllByContentId(result.getId()));
+        return ResponseEntity.ok(result);
     }
 
     @DeleteMapping("/delete/{id}")
@@ -178,11 +177,13 @@ public class MainController {
     @GetMapping("/searchByTag")
     public ResponseEntity searchByTag(String title) {
         List<Long> ids = tagService.findContentIdByTagName(title);
-        List<ContentSingleModel> contents = contentService.getContentsById(ids);
+        List<ContentModel> contents = contentService.getContentsById(ids);
 
         List<ContentDTO> result = new ArrayList<>();
-        for (ContentSingleModel model : contents) {
-            result.add(new ContentDTO(model, tagService.findAllByContentId(model.getId())));
+        for (ContentModel model : contents) {
+            ContentDTO dto = (ContentDTO) model;
+            dto.setTagList(tagService.findAllByContentId(model.getId()));
+            result.add(dto);
         }
 
         if (!result.isEmpty()) {

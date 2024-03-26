@@ -4,24 +4,17 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.springframework.data.annotation.CreatedDate;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 
 @Entity(name = "content_model")
-@Schema(description = "Default Content Dto")
+@Schema(description = "single Content DAO")
 public class ContentModel {
 
     @Id @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
     private String title;
     private String content;
-
-    @OneToMany(cascade = CascadeType.PERSIST)
-    private List<TagModel> tagList = new ArrayList<>();
 
     @CreationTimestamp
     private LocalDateTime createdDate;
@@ -59,14 +52,6 @@ public class ContentModel {
 
     public void setContent(String content) {
         this.content = content;
-    }
-
-    public List<TagModel> getTagList() {
-        return tagList;
-    }
-
-    public void setTagList(List<TagModel> tagList) {
-        this.tagList = tagList;
     }
 
     public LocalDateTime getCreatedDate() {

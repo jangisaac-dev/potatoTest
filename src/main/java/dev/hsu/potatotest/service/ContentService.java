@@ -1,34 +1,23 @@
 package dev.hsu.potatotest.service;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import dev.hsu.potatotest.domain.ContentSingleModel;
-import dev.hsu.potatotest.domain.TagModel;
+import dev.hsu.potatotest.domain.ContentModel;
 import dev.hsu.potatotest.repo.ContentRepository;
-import dev.hsu.potatotest.repo.ContentSingleRepository;
 import dev.hsu.potatotest.repo.TagRepository;
-import dev.hsu.potatotest.repo.TagSingleRepository;
-import dev.hsu.potatotest.utils.LocalDateTimeSerializer;
-import jakarta.annotation.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ContentService {
 
     @Autowired
-    private ContentSingleRepository contentRepository;
-    @Autowired
-    private TagSingleRepository tagRepository;
+    private ContentRepository contentRepository;
 
 
-
-
-    public List<ContentSingleModel> getContents(boolean query) {
-        List<ContentSingleModel> contents;
+    public List<ContentModel> getContents(boolean query) {
+        List<ContentModel> contents;
         if (query) {
             contents = contentRepository.findAllQuery();
         }
@@ -38,8 +27,8 @@ public class ContentService {
         return contents;
     }
 
-    public Optional<ContentSingleModel> getContentById(final Long id, final boolean isQuery) {
-        Optional<ContentSingleModel> result;
+    public Optional<ContentModel> getContentById(final Long id, final boolean isQuery) {
+        Optional<ContentModel> result;
         if (isQuery) {
             result = contentRepository.findByIdQuery(id);
         }
@@ -49,37 +38,35 @@ public class ContentService {
         return result;
     }
 
-    public List<ContentSingleModel> getContentsById(final List<Long> ids) {
+    public List<ContentModel> getContentsById(final List<Long> ids) {
         return contentRepository.findAllById(ids);
     }
 
-    public ContentSingleModel createContent(final ContentSingleModel createContentSingleModel) {
-        if(createContentSingleModel == null) throw new IllegalArgumentException("content item cannot be null");
+    public ContentModel createContent(final ContentModel createContentModel) {
+        if(createContentModel == null) throw new IllegalArgumentException("content item cannot be null");
 
-        ContentSingleModel result = contentRepository.save(createContentSingleModel);
-        contentRepository.flush();
-        return result;
+        return contentRepository.saveAndFlush(createContentModel);
     }
 
-    public ContentSingleModel updateContent(final long id, final ContentSingleModel updateContentSingleModel, boolean query) {
-        Optional<ContentSingleModel> opContent = getContentById(id, query);
+    public ContentModel updateContent(final long id, final ContentModel updateContentModel, boolean query) {
+        Optional<ContentModel> opContent = getContentById(id, query);
         if (opContent.isEmpty()) {
             return null;
         }
-        ContentSingleModel ContentSingleModel = opContent.get();
+        ContentModel ContentModel = opContent.get();
 
-        if (updateContentSingleModel.getTitle() == null) {
-            updateContentSingleModel.setTitle(ContentSingleModel.getTitle());
+        if (updateContentModel.getTitle() == null) {
+            updateContentModel.setTitle(ContentModel.getTitle());
         }
-        ContentSingleModel.setTitle(updateContentSingleModel.getTitle());
+        ContentModel.setTitle(updateContentModel.getTitle());
 
-        if (updateContentSingleModel.getContent() == null) {
-            updateContentSingleModel.setContent(ContentSingleModel.getContent());
+        if (updateContentModel.getContent() == null) {
+            updateContentModel.setContent(ContentModel.getContent());
         }
-        ContentSingleModel.setContent(updateContentSingleModel.getContent());
+        ContentModel.setContent(updateContentModel.getContent());
 
 
-        return contentRepository.save(ContentSingleModel);
+        return contentRepository.save(ContentModel);
     }
 
     public void deleteContentById(final Long id) {
