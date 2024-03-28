@@ -1,4 +1,4 @@
-package dev.hsu.potatotest.dtos;
+package dev.hsu.potatotest.dto;
 
 import dev.hsu.potatotest.domain.ContentModel;
 import dev.hsu.potatotest.domain.TagModel;

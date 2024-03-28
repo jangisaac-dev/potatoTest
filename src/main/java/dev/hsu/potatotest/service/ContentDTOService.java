@@ -2,7 +2,7 @@ package dev.hsu.potatotest.service;
 
 import dev.hsu.potatotest.domain.ContentModel;
 import dev.hsu.potatotest.domain.TagModel;
-import dev.hsu.potatotest.dtos.ContentDTO;
+import dev.hsu.potatotest.dto.ContentDTO;
 import dev.hsu.potatotest.repo.ContentRepository;
 import dev.hsu.potatotest.repo.TagRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +45,13 @@ public class ContentDTOService {
 
         return joinTag(result.get());
     }
+    public List<ContentDTO> getContentsById(final List<Long> ids) {
+        ArrayList<ContentDTO> nList = new ArrayList<>();
+        for (Long id : ids) {
+            nList.add(getContentById(id));
+        }
+        return nList;
+    }
 
     public ContentDTO createContent(final ContentDTO createContentModel) {
         if(createContentModel == null) throw new IllegalArgumentException("content item cannot be null");
@@ -52,6 +59,11 @@ public class ContentDTOService {
         ContentModel result = contentRepository.saveAndFlush(createContentModel);
         tagRepository.saveAllAndFlush(createContentModel.getTagList());
         return getContentById(result.getId());
+    }
+    public ContentDTO createContent(final ContentModel createContentModel) {
+        if(createContentModel == null) throw new IllegalArgumentException("content item cannot be null");
+
+        return (ContentDTO) contentRepository.saveAndFlush(createContentModel);
     }
 
     public ContentDTO updateContent(final ContentDTO updatedModel) {
