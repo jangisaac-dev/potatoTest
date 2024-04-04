@@ -1,32 +1,31 @@
 package dev.hsu.potatotest.controller;
 
 import dev.hsu.potatotest.constants.AuthConstant;
-import dev.hsu.potatotest.domain.ContentModel;
-import dev.hsu.potatotest.domain.TagModel;
 import dev.hsu.potatotest.domain.UserModel;
 import dev.hsu.potatotest.domain.VrfKeyModel;
-import dev.hsu.potatotest.dto.ContentDTO;
 import dev.hsu.potatotest.dto.TokenDTO;
-import dev.hsu.potatotest.repo.VrfKeyRepository;
-import dev.hsu.potatotest.service.*;
+import dev.hsu.potatotest.service.UserService;
+import dev.hsu.potatotest.service.VrfKeyService;
 import dev.hsu.potatotest.utils.JwtTokenProvider;
 import dev.hsu.potatotest.utils.VerifyKeyUtil;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import org.antlr.v4.runtime.misc.Pair;
+import org.antlr.v4.runtime.misc.Triple;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -79,8 +78,11 @@ public class AuthController {
             @Parameter(name = "email", description = "email address")
     })
     @PostMapping("/reVerifyUser")
-    public ResponseEntity reVerifyUser(
-            String email) {
+    public ResponseEntity reVerifyUser(String email) {
+        VrfKeyModel origin = vrfKeyService.findByUserEmail(email);
+        if (origin != null) {
+            vrfKeyService.delete(origin.getId());
+        }
         VrfKeyModel model = vrfKeyService.createKey(email);
         return ResponseEntity.ok(model);
     }
@@ -145,11 +147,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body("not verified user");
         }
 
-        String accessToken = jwtTokenProvider.createAccessToken(user.getId());
-        String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
-        TokenDTO tokenDTO = new TokenDTO(accessToken, refreshToken);
-
-        return ResponseEntity.ok(tokenDTO);
+        return ResponseEntity.ok(jwtTokenProvider.createToken(user.getId()));
     }
 
     @ApiResponses(value = {
@@ -160,35 +158,104 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "not matching password"),
     })
     @Parameters({
-            @Parameter(name = "email", description = "email Address"),
-            @Parameter(name = "password", description = "need to encrypt")
+            @Parameter(name = "token", description = "token string"),
+            @Parameter(name = "updateUserId", description = "userId for update auth"),
+            @Parameter(name = "role", description = "role for update.\nIf u want set custom value, input -1~long max value", examples = {
+                    @ExampleObject(name = "role for invalidate", value = "invalidate"),
+                    @ExampleObject(name = "role for default user", value = "default"),
+                    @ExampleObject(name = "role for admin user", value = "admin"),
+                    @ExampleObject(name = "role for custom value (invalidate)", value = "-1"),
+                    @ExampleObject(name = "role for custom value (default)", value = "100"),
+                    @ExampleObject(name = "role for custom value (admin)", value = "1000"),
+            }),
+            @Parameter(name = "serverPassword", description = "serverPassword"),
     })
     @PostMapping("/updateAuth")
     public ResponseEntity updateAuth(
-            String token,
-            String userId,
-            String password) {
-//        System.out.println("validate : " + jwtTokenProvider.validateToken(token));
-//        System.out.println("role : " + jwtTokenProvider.getUserRole(token));
-//        System.out.println("extractAllClaims : " + jwtTokenProvider.extractAllClaims(token));
+            @NotEmpty @NotNull String token,
+            @NotEmpty @NotNull String updateUserId,
+            @NotEmpty @NotNull String role,
+            @Nullable String serverPassword
+            ) {
+        UserModel user = jwtTokenProvider.getUserWithValidation(token);
+
+        if (user == null) {
+            Pair<Integer, String> validChecker = jwtTokenProvider.isValidUserWithMessage(token);
+            return ResponseEntity.status(validChecker.a).body(validChecker.b);
+        }
+
+        boolean isValidPermission = false;
+
+        UserModel requestUserModel = userService.findById(user.getId());
+        if (requestUserModel != null
+                && requestUserModel.getUserRole() >= AuthConstant.USER_ROLE_ADMIN
+        ) {
+            isValidPermission = true;
+        }
+
+        if (serverPassword != null
+                && verifyKeyUtil.checkAdminPassword(serverPassword)
+        ) {
+            isValidPermission = true;
+        }
+
+        if (!isValidPermission) {
+            return ResponseEntity.badRequest().body("Invalid Permission");
+        }
+
+        if (!NumberUtils.isParsable(updateUserId)) {
+            return ResponseEntity.badRequest().body("Invalid new user id");
+        }
+
+        UserModel updateUserModel = userService.findById(Long.valueOf(updateUserId));
+        if (updateUserModel == null) {
+            return ResponseEntity.badRequest().body("Invalid new user");
+        }
+
+        Long longRole = switch (role) {
+            case "invalidate" -> -1L;
+            case "default" -> 100L;
+            case "admin" -> 1000L;
+            default -> null;
+        };
+
+        if (longRole == null && NumberUtils.isParsable(role)) {
+            longRole = Long.parseLong(role);
+        }
+
+        if (longRole == null) {
+            return ResponseEntity.badRequest().body("Invalid new ROLE");
+        }
+
+        return ResponseEntity.ok(userService.updateUserRole(Long.valueOf(updateUserId), longRole));
+    }
 
 
-//
-//        UserModel user = userService.login(email, password);
-//        if (user == null) {
-//            return ResponseEntity.notFound().build();
-//        }
-//
-//        if (user.getUserRole() < 0) {
-//            return ResponseEntity.badRequest().body("not verified user");
-//        }
-//
-//        String accessToken = jwtTokenProvider.createAccessToken(user.getId());
-//        String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
-//        TokenDTO tokenDTO = new TokenDTO(accessToken, refreshToken);
-//
-//        return ResponseEntity.ok(tokenDTO);
-        return ResponseEntity.ok().build();
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "success", content = @Content(
+                    schema = @Schema(implementation = TokenDTO.class)
+            )),
+            @ApiResponse(responseCode = "400", description = "invalid token"),
+            @ApiResponse(responseCode = "404", description = "not found user"),
+    })
+    @Parameters({
+            @Parameter(name = "token", description = "token value"),
+    })
+    @PostMapping("/reissueToken")
+    public ResponseEntity reissueToken(String token) {
+
+        UserModel user = jwtTokenProvider.getUserWithValidation(token);
+
+        if (user == null) {
+            Pair<Integer, String> validChecker = jwtTokenProvider.isValidUserWithMessage(token);
+            return ResponseEntity.status(validChecker.a).body(validChecker.b);
+        }
+
+        if (user.getUserRole() < 0) {
+            return ResponseEntity.badRequest().body("not verified user");
+        }
+
+        return ResponseEntity.ok(jwtTokenProvider.createToken(user.getId()));
     }
 
 }
