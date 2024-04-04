@@ -21,9 +21,6 @@ public class VerifyKeyUtil {
     private String verifyTime;
     @Value("${hsu.verify.admin_password}")
     private String adminPassword;
-    @Value("${hsu.aes.key}")
-    private String aesKey;
-
 
     public Long getVerifyTime() {
         System.out.println("verifyTime : " + verifyTime);
@@ -48,34 +45,6 @@ public class VerifyKeyUtil {
 
     public Boolean checkAdminPassword(String pw) {
         return pw.equals(adminPassword);
-    }
-
-
-    public String aesCBCEncode(String plainText) throws Exception {
-        SecretKeySpec secretKey = new SecretKeySpec(aesKey.getBytes("UTF-8"), "AES");
-        IvParameterSpec IV = new IvParameterSpec(aesKey.substring(0,16).getBytes());
-
-        Cipher c = Cipher.getInstance("AES/CBC/PKCS5Padding");
-
-        c.init(Cipher.ENCRYPT_MODE, secretKey, IV);
-
-        byte[] encrpytionByte = c.doFinal(plainText.getBytes("UTF-8"));
-
-        return Hex.encodeHexString(encrpytionByte);
-    }
-
-
-    public String aesCBCDecode(String encodeText) throws Exception {
-        SecretKeySpec secretKey = new SecretKeySpec(aesKey.getBytes("UTF-8"), "AES");
-        IvParameterSpec IV = new IvParameterSpec(aesKey.substring(0,16).getBytes());
-
-        Cipher c = Cipher.getInstance("AES/CBC/PKCS5Padding");
-
-        c.init(Cipher.DECRYPT_MODE, secretKey, IV);
-
-        byte[] decodeByte = Hex.decodeHex(encodeText.toCharArray());
-
-        return new String(c.doFinal(decodeByte), "UTF-8");
     }
 
 }
