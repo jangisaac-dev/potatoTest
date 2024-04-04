@@ -2,6 +2,7 @@ package dev.hsu.potatotest.domain;
 
 import dev.hsu.potatotest.constants.AuthConstant;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.ColumnDefault;
@@ -17,8 +18,6 @@ public class UserModel {
     @Id @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
 
-    private String userName;
-
     @NotNull
     @Column(unique = true)
     private String userEmail;
@@ -29,15 +28,13 @@ public class UserModel {
     /**
      * ColumnDefault value : AuthConstant.USER_ROLE_NOT_VERIFIED
      * */
-    @NotNull
     @ColumnDefault(value = "-1")
     private Long userRole;
 
     public UserModel() {
     }
 
-    public UserModel(String userName, String userEmail, String userPassword) {
-        this.userName = userName;
+    public UserModel(String userEmail, String userPassword) {
         this.userEmail = userEmail;
         this.userPassword = userPassword;
     }
@@ -48,14 +45,6 @@ public class UserModel {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
-    public void setUserName(String userName) {
-        this.userName = userName;
     }
 
     public String getUserEmail() {

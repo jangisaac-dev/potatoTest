@@ -1,5 +1,6 @@
 package dev.hsu.potatotest.service;
 
+import com.google.gson.Gson;
 import dev.hsu.potatotest.domain.TagModel;
 import dev.hsu.potatotest.domain.UserModel;
 import dev.hsu.potatotest.repo.TagRepository;
@@ -38,6 +39,7 @@ public class UserService {
         if (userRepository.findByUserEmail(userModel.getUserEmail()).isPresent()) {
             return null;
         }
+        System.out.println("userModel : " + new Gson().toJson(userModel));
         return userRepository.save(userModel);
     }
 

@@ -13,6 +13,7 @@ public class ContentModel {
 
     @Id @GeneratedValue(strategy = GenerationType.SEQUENCE)
     private Long id;
+    private Long createUserId;
     private String title;
     private String content;
 
@@ -25,9 +26,19 @@ public class ContentModel {
     public ContentModel() {
     }
 
-    public ContentModel(String title, String content) {
+    public ContentModel(Long createUserId, String title, String content) {
+        this.createUserId = createUserId;
         this.title = title;
         this.content = content;
+    }
+
+    public ContentModel(Long id, Long createUserId, String title, String content, LocalDateTime createdDate, LocalDateTime updateDate) {
+        this.id = id;
+        this.createUserId = createUserId;
+        this.title = title;
+        this.content = content;
+        this.createdDate = createdDate;
+        this.updateDate = updateDate;
     }
 
     public Long getId() {
@@ -36,6 +47,14 @@ public class ContentModel {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getCreateUserId() {
+        return createUserId;
+    }
+
+    public void setCreateUserId(Long createUserId) {
+        this.createUserId = createUserId;
     }
 
     public String getTitle() {
@@ -68,5 +87,17 @@ public class ContentModel {
 
     public void setUpdateDate(LocalDateTime updateDate) {
         this.updateDate = updateDate;
+    }
+
+    @Override
+    public String toString() {
+        return "ContentModel{" +
+                "id=" + id +
+                ", createUserId=" + createUserId +
+                ", title='" + title + '\'' +
+                ", content='" + content + '\'' +
+                ", createdDate=" + createdDate +
+                ", updateDate=" + updateDate +
+                '}';
     }
 }

@@ -47,17 +47,14 @@ public class AuthController {
             @ApiResponse(responseCode = "404", description = "already join user"),
     })
     @Parameters({
-            @Parameter(name = "name", description = "name Value"),
             @Parameter(name = "email", description = "email Address"),
             @Parameter(name = "password", description = "need to encrypt")
     })
     @PostMapping("/signUp")
     public ResponseEntity signUp(
-            @Nullable String name,
             String email,
             String password) {
-
-        UserModel user = userService.createUser(new UserModel(name, email, password));
+        UserModel user = userService.createUser(new UserModel(email, password));
         if (user == null) { // 중복 가능성
             return ResponseEntity.badRequest().body("중복된 유저입니다.");
         }

@@ -1,5 +1,6 @@
 package dev.hsu.potatotest.service;
 
+import com.google.gson.Gson;
 import dev.hsu.potatotest.domain.ContentModel;
 import dev.hsu.potatotest.domain.TagModel;
 import dev.hsu.potatotest.dto.ContentDTO;
@@ -32,7 +33,7 @@ public class ContentDTOService {
     private ContentDTO joinTag(ContentModel content) {
         List<TagModel> tags = tagRepository.findAllByContentId(content.getId());
 
-        ContentDTO result = ((ContentDTO) content);
+        ContentDTO result = new ContentDTO(content);
         result.setTagList(tags);
         return result;
     }
@@ -63,13 +64,13 @@ public class ContentDTOService {
     public ContentDTO createContent(final ContentModel createContentModel) {
         if(createContentModel == null) throw new IllegalArgumentException("content item cannot be null");
 
-        return (ContentDTO) contentRepository.saveAndFlush(createContentModel);
+        return new ContentDTO(contentRepository.saveAndFlush(createContentModel));
     }
 
     public ContentDTO updateContent(final ContentDTO updatedModel) {
         List<TagModel> upTags = updatedModel.getTagList();
         tagRepository.saveAllAndFlush(upTags);
-        contentRepository.saveAndFlush((ContentModel) updatedModel);
+        contentRepository.saveAndFlush(updatedModel.getParentModel());
 
         return getContentById(updatedModel.getId());
     }

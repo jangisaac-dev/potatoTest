@@ -103,7 +103,7 @@ public class JwtTokenProvider {
     }
 
 
-    public Claims extractAllClaims(String token){
+    public Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith(this.getSigningKey())
                 .build()
@@ -125,7 +125,6 @@ public class JwtTokenProvider {
         try {
             String decrypted = decrypt(subject);
             JsonObject json = new Gson().fromJson(decrypted, JsonObject.class);
-            System.out.println("keyset : " + json.keySet());
             return json;
         } catch (Exception e) {
             e.printStackTrace();

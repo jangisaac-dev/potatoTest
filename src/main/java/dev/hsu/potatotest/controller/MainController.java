@@ -1,12 +1,14 @@
 package dev.hsu.potatotest.controller;
 
 import com.google.gson.Gson;
+import dev.hsu.potatotest.constants.AuthConstant;
 import dev.hsu.potatotest.domain.ContentModel;
 import dev.hsu.potatotest.domain.TagModel;
+import dev.hsu.potatotest.domain.UserModel;
 import dev.hsu.potatotest.dto.ContentDTO;
-import dev.hsu.potatotest.service.ContentDTOService;
-import dev.hsu.potatotest.service.ContentService;
-import dev.hsu.potatotest.service.TagService;
+import dev.hsu.potatotest.service.*;
+import dev.hsu.potatotest.utils.JwtTokenProvider;
+import dev.hsu.potatotest.utils.VerifyKeyUtil;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -15,6 +17,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.annotation.Nullable;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import org.antlr.v4.runtime.misc.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +39,16 @@ public class MainController {
     private ContentService contentService;
     @Autowired
     private TagService tagService;
+
+
+    @Autowired
+    private UserService userService;
+    @Autowired
+    private VrfKeyService vrfKeyService;
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+    @Autowired
+    private VerifyKeyUtil verifyKeyUtil;
 
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "success", content = @Content(
@@ -56,7 +71,7 @@ public class MainController {
             )),
             @ApiResponse(responseCode = "404", description = "not found data")
     })
-    @GetMapping("/getContent/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity getContent(@PathVariable("id") Long id) {
         ContentDTO content = contentDTOService.getContentById(id);
         if (content == null) {
@@ -74,17 +89,29 @@ public class MainController {
             @ApiResponse(responseCode = "503", description = "too many tags failed"),
     })
     @Parameters({
+            @Parameter(name = "token", description = "token Value"),
             @Parameter(name = "title", description = "title Value"),
             @Parameter(name = "content", description = "content Value"),
             @Parameter(name = "tags", description = "tag list Value")
     })
-    @PostMapping("/insert")
-    public ResponseEntity insert(String title, String content, @RequestParam @Nullable HashSet<String> tags) {
+    @PostMapping("/")
+    public ResponseEntity insert(@NotEmpty @NotNull String token, String title, String content, @RequestParam @Nullable HashSet<String> tags) {
+        UserModel user = jwtTokenProvider.getUserWithValidation(token);
+
+        if (user == null) {
+            Pair<Integer, String> validChecker = jwtTokenProvider.isValidUserWithMessage(token);
+            return ResponseEntity.status(validChecker.a).body(validChecker.b);
+        }
+
+        if (user.getUserRole() < AuthConstant.PERMISSION_CREATE) {
+            return ResponseEntity.badRequest().body("permission denied");
+        }
+
         if (tags != null && tags.size() > 5) {
             return ResponseEntity.status(504).body("too many tags"); // code 외부 정의 생략
         }
 
-        ContentDTO contentDTO = contentDTOService.createContent(new ContentModel(title, content));
+        ContentDTO contentDTO = contentDTOService.createContent(new ContentModel(user.getId(), title, content));
 
         if (tags != null) {
 //            System.out.println("tag : " + tags.size());
@@ -107,18 +134,36 @@ public class MainController {
             @ApiResponse(responseCode = "404", description = "not found data")
     })
     @Parameters({
+            @Parameter(name = "token", description = "token Value"),
+            @Parameter(name = "id", description = "content id Value"),
             @Parameter(name = "title", description = "title Value"),
             @Parameter(name = "content", description = "content Value"),
             @Parameter(name = "tags", description = "tag list Value")
     })
-    @PutMapping("/edit")
-    public ResponseEntity edit(Long id, String title, String content,
+    @PutMapping("/{id}")
+    public ResponseEntity edit(@NotEmpty @NotNull String token, @PathVariable("id") Long id, String title, String content,
                                @RequestParam @Nullable HashSet<String> tags
     ) {
+        UserModel user = jwtTokenProvider.getUserWithValidation(token);
+
+        if (user == null) {
+            Pair<Integer, String> validChecker = jwtTokenProvider.isValidUserWithMessage(token);
+            return ResponseEntity.status(validChecker.a).body(validChecker.b);
+        }
+
+        if (user.getUserRole() < AuthConstant.PERMISSION_PUT) {
+            return ResponseEntity.badRequest().body("permission denied");
+        }
+
         if (contentDTOService.getContentById(id) == null) {
             return ResponseEntity.notFound().build();
         }
         ContentDTO contentDTO = contentDTOService.getContentById(id);
+
+        if (contentDTO.getCreateUserId() != user.getId()) {
+            return ResponseEntity.status(405).body("U r not a Content creator");
+        }
+
         contentDTO.setTitle(title);
         contentDTO.setContent(content);
 
@@ -148,9 +193,27 @@ public class MainController {
         return ResponseEntity.ok(contentModel);
     }
 
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "success"),
+            @ApiResponse(responseCode = "404", description = "not found data")
+    })
+    @Parameters({
+            @Parameter(name = "token", description = "token Value"),
+            @Parameter(name = "id", description = "content id Value"),
+    })
+    @DeleteMapping("/{id}")
+    public ResponseEntity deletePath(@NotEmpty @NotNull String token, @PathVariable("id") Long id) {
+        UserModel user = jwtTokenProvider.getUserWithValidation(token);
 
-    @DeleteMapping("/delete/{id}")
-    public ResponseEntity deletePath(@PathVariable("id") Long id) {
+        if (user == null) {
+            Pair<Integer, String> validChecker = jwtTokenProvider.isValidUserWithMessage(token);
+            return ResponseEntity.status(validChecker.a).body(validChecker.b);
+        }
+
+        if (user.getUserRole() < AuthConstant.PERMISSION_DELETE) {
+            return ResponseEntity.badRequest().body("permission denied");
+        }
+
         if (contentDTOService.getContentById(id) == null) {
             return ResponseEntity.notFound().build();
         }
