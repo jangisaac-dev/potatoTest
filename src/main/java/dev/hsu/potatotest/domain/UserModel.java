@@ -1,14 +1,17 @@
 package dev.hsu.potatotest.domain;
 
+import dev.hsu.potatotest.constants.AuthConstant;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.DynamicInsert;
 import org.springframework.context.annotation.Primary;
 
 //foreign key remove version
 @Entity(name = "user_model")
 @Schema(description = "User Model")
+@DynamicInsert
 public class UserModel {
 
     @Id @GeneratedValue(strategy = GenerationType.SEQUENCE)
@@ -23,8 +26,15 @@ public class UserModel {
     @NotNull
     private String userPassword;
 
-    @ColumnDefault("-1")
+    /**
+     * ColumnDefault value : AuthConstant.USER_ROLE_NOT_VERIFIED
+     * */
+    @NotNull
+    @ColumnDefault(value = "-1")
     private Long userRole;
+
+    public UserModel() {
+    }
 
     public UserModel(String userName, String userEmail, String userPassword) {
         this.userName = userName;

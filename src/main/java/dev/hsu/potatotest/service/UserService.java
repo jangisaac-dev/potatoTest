@@ -18,6 +18,22 @@ public class UserService {
     private UserRepository userRepository;
 
 
+    public UserModel findById(Long id) {
+        Optional<UserModel> result = userRepository.findById(id);
+        if (result.isEmpty()) {
+            return null;
+        }
+        return result.get();
+    }
+
+    public UserModel findByUserEmail(String email) {
+        Optional<UserModel> result = userRepository.findByUserEmail(email);
+        if (result.isEmpty()) {
+            return null;
+        }
+        return result.get();
+    }
+
     public UserModel createUser(UserModel userModel) {
         if (userRepository.findByUserEmail(userModel.getUserEmail()).isPresent()) {
             return null;
@@ -28,9 +44,6 @@ public class UserService {
     public UserModel login(String email, String pw) {
         Optional<UserModel> opUserModel = userRepository.findByUserEmail(email);
         if (opUserModel.isEmpty()) {
-            return null;
-        }
-        if (opUserModel.get().getUserRole() < 0) {
             return null;
         }
 
@@ -45,6 +58,6 @@ public class UserService {
 
         UserModel ovrModel = opUserModel.get();
         ovrModel.setUserRole(role);
-        return userRepository.save(ovrModel);
+        return userRepository.saveAndFlush(ovrModel);
     }
 }

@@ -2,6 +2,7 @@ package dev.hsu.potatotest.service;
 
 import dev.hsu.potatotest.domain.VrfKeyModel;
 import dev.hsu.potatotest.repo.VrfKeyRepository;
+import dev.hsu.potatotest.utils.JwtTokenProvider;
 import dev.hsu.potatotest.utils.VerifyKeyUtil;
 import org.antlr.v4.runtime.misc.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,10 +15,13 @@ import java.util.Optional;
 public class VrfKeyService {
 
     @Autowired
+    private VerifyKeyUtil verifyKeyUtil;
+
+    @Autowired
     private VrfKeyRepository vrfKeyRepository;
 
     public VrfKeyModel createKey(String email) {
-        return vrfKeyRepository.save(new VrfKeyModel(email, VerifyKeyUtil.getInstance().generateKey()));
+        return vrfKeyRepository.save(new VrfKeyModel(email, verifyKeyUtil.generateKey()));
     }
 
     public Pair<Boolean, String> verifyKey(String email, String key) {
@@ -32,7 +36,7 @@ public class VrfKeyService {
         }
 
         Timestamp now = new Timestamp(System.currentTimeMillis());
-        long checkNow = now.getTime() - (VerifyKeyUtil.getInstance().verifyTime * 1000);
+        long checkNow = now.getTime() - (verifyKeyUtil.getVerifyTime() * 1000);
         long creationTime = Timestamp.valueOf(opModel.get().getCreatedDate()).getTime();
         if (checkNow > creationTime) {
             return new Pair<>(false, "deprecated key 'time over'");
