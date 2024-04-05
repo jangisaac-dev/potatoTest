@@ -96,11 +96,14 @@ public class MainController {
     })
     @PostMapping("/")
     public ResponseEntity insert(@NotEmpty @NotNull String token, String title, String content, @RequestParam @Nullable HashSet<String> tags) {
-        UserModel user = jwtTokenProvider.getUserWithValidation(token);
-
-        if (user == null) {
-            Pair<Integer, String> validChecker = jwtTokenProvider.isValidUserWithMessage(token);
+        Pair<Integer, String> validChecker = jwtTokenProvider.isTokenValid(token);
+        if (validChecker != null) {
             return ResponseEntity.status(validChecker.a).body(validChecker.b);
+        }
+
+        UserModel user = userService.findById(jwtTokenProvider.getUserId(token));
+        if (user == null) {
+            return ResponseEntity.status(408).body("invalid User");
         }
 
         if (user.getUserRole() < AuthConstant.PERMISSION_CREATE) {
@@ -144,11 +147,14 @@ public class MainController {
     public ResponseEntity edit(@NotEmpty @NotNull String token, @PathVariable("id") Long id, String title, String content,
                                @RequestParam @Nullable HashSet<String> tags
     ) {
-        UserModel user = jwtTokenProvider.getUserWithValidation(token);
-
-        if (user == null) {
-            Pair<Integer, String> validChecker = jwtTokenProvider.isValidUserWithMessage(token);
+        Pair<Integer, String> validChecker = jwtTokenProvider.isTokenValid(token);
+        if (validChecker != null) {
             return ResponseEntity.status(validChecker.a).body(validChecker.b);
+        }
+
+        UserModel user = userService.findById(jwtTokenProvider.getUserId(token));
+        if (user == null) {
+            return ResponseEntity.status(408).body("invalid User");
         }
 
         if (user.getUserRole() < AuthConstant.PERMISSION_PUT) {
@@ -203,11 +209,14 @@ public class MainController {
     })
     @DeleteMapping("/{id}")
     public ResponseEntity deletePath(@NotEmpty @NotNull String token, @PathVariable("id") Long id) {
-        UserModel user = jwtTokenProvider.getUserWithValidation(token);
-
-        if (user == null) {
-            Pair<Integer, String> validChecker = jwtTokenProvider.isValidUserWithMessage(token);
+        Pair<Integer, String> validChecker = jwtTokenProvider.isTokenValid(token);
+        if (validChecker != null) {
             return ResponseEntity.status(validChecker.a).body(validChecker.b);
+        }
+
+        UserModel user = userService.findById(jwtTokenProvider.getUserId(token));
+        if (user == null) {
+            return ResponseEntity.status(408).body("invalid User");
         }
 
         if (user.getUserRole() < AuthConstant.PERMISSION_DELETE) {

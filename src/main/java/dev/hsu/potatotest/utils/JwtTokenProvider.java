@@ -6,22 +6,14 @@ import com.google.gson.JsonObject;
 import dev.hsu.potatotest.domain.UserModel;
 import dev.hsu.potatotest.dto.TokenDTO;
 import dev.hsu.potatotest.service.UserService;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.antlr.v4.runtime.misc.Pair;
-import org.antlr.v4.runtime.misc.Triple;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.math.NumberUtils;
-import org.hibernate.mapping.Any;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Cipher;
@@ -29,9 +21,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Date;
-import java.util.Map;
 
 
 @Component
@@ -92,7 +82,7 @@ public class JwtTokenProvider {
         Claims claims = Jwts.claims().subject(encrypt(jsonObject.toString())).build();
         Date now = new Date();
 
-        System.out.println("validTime : " + validTime);
+//        System.out.println("validTime : " + validTime);
 
         return Jwts.builder()
                 .claims(claims)
@@ -104,20 +94,18 @@ public class JwtTokenProvider {
 
 
     public Claims extractAllClaims(String token) {
-        return Jwts.parser()
-                .verifyWith(this.getSigningKey())
-                .build()
+        return getParser()
                 .parseSignedClaims(token)
                 .getPayload();
     }
 
-    public String getUserId(String token) {
+    public Long getUserId(String token) {
         JsonElement userId = extraValue(token).get("userId");
         if (userId.isJsonNull()) {
             return null;
         }
 
-        return userId.getAsString();
+        return userId.getAsLong();
     }
 
     private JsonObject extraValue(String token) {
@@ -158,31 +146,32 @@ public class JwtTokenProvider {
         return new String(c.doFinal(decodeByte), StandardCharsets.UTF_8);
     }
 
-    public UserModel getUserWithValidation(String token) {
-        if (!isValidUser(token)) {
-            return null;
+    public Pair<Integer, String> isTokenValid(String token) {
+        if (isExpiredToken(token)) {
+            return new Pair<>(407, "token is Expired");
         }
-
-        String userId = getUserId(token);
-        return userService.findById(Long.valueOf(userId));
-    }
-
-    public boolean isValidUser(String token) {
-        return isValidUserWithMessage(token).a == 200;
-    }
-
-    public Pair<Integer, String> isValidUserWithMessage(String token) {
-        String userId = getUserId(token);
-        if (!NumberUtils.isParsable(userId)) {
+        Long userId = getUserId(token);
+        if (userId == null) {
             return new Pair<>(400, "token not valid");
         }
-
-        UserModel user = userService.findById(Long.valueOf(userId));
-        if (user == null) {
-            return new Pair<>(404, "not found user");
-        }
-        return new Pair<>(200, "success");
+        return null;
     }
+
+    private boolean isExpiredToken(String token) {
+        try {
+            getParser().parseSignedClaims(token);
+        } catch (ExpiredJwtException e) {
+            return true;
+        }
+        return false;
+    }
+
+    private JwtParser getParser() {
+        return Jwts.parser()
+                .verifyWith(this.getSigningKey())
+                .build();
+    }
+
 
 }
 
