@@ -180,14 +180,13 @@ public class AuthController {
             return ResponseEntity.status(validChecker.a).body(validChecker.b);
         }
 
-        Long userId = jwtTokenProvider.getUserId(token);
-
         boolean isValidPermission = false;
+        UserModel requestUserModel = userService.findById(jwtTokenProvider.getUserId(token));
 
-        UserModel requestUserModel = userService.findById(userId);
-        if (requestUserModel != null
-                && requestUserModel.getUserRole() >= AuthConstant.USER_ROLE_ADMIN
-        ) {
+        if (requestUserModel == null) {
+            return ResponseEntity.status(408).body("invalid User");
+        }
+        if (requestUserModel.getUserRole() >= AuthConstant.USER_ROLE_ADMIN) {
             isValidPermission = true;
         }
 
@@ -246,9 +245,10 @@ public class AuthController {
         if (validChecker != null) {
             return ResponseEntity.status(validChecker.a).body(validChecker.b);
         }
-        Long userId = jwtTokenProvider.getUserId(token);
-        UserModel user = userService.findById(userId);
-
+        UserModel user = userService.findById(jwtTokenProvider.getUserId(token));
+        if (user == null) {
+            return ResponseEntity.status(408).body("invalid User");
+        }
         if (user.getUserRole() < 0) {
             return ResponseEntity.badRequest().body("not verified user");
         }

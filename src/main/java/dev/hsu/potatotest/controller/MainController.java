@@ -35,20 +35,20 @@ public class MainController {
 
     @Autowired
     private ContentDTOService contentDTOService;
-    @Autowired
-    private ContentService contentService;
+//    @Autowired
+//    private ContentService contentService;
     @Autowired
     private TagService tagService;
 
 
     @Autowired
     private UserService userService;
-    @Autowired
-    private VrfKeyService vrfKeyService;
+//    @Autowired
+//    private VrfKeyService vrfKeyService;
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
-    @Autowired
-    private VerifyKeyUtil verifyKeyUtil;
+//    @Autowired
+//    private VerifyKeyUtil verifyKeyUtil;
 
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "success", content = @Content(
