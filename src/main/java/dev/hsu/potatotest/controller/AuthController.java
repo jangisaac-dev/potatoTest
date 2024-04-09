@@ -174,16 +174,17 @@ public class AuthController {
             @NotEmpty @NotNull String role,
             @Nullable String serverPassword
             ) {
-        UserModel user = jwtTokenProvider.getUserWithValidation(token);
 
-        if (user == null) {
-            Pair<Integer, String> validChecker = jwtTokenProvider.isValidUserWithMessage(token);
+        Pair<Integer, String> validChecker = jwtTokenProvider.isTokenValid(token);
+        if (validChecker != null) {
             return ResponseEntity.status(validChecker.a).body(validChecker.b);
         }
 
+        Long userId = jwtTokenProvider.getUserId(token);
+
         boolean isValidPermission = false;
 
-        UserModel requestUserModel = userService.findById(user.getId());
+        UserModel requestUserModel = userService.findById(userId);
         if (requestUserModel != null
                 && requestUserModel.getUserRole() >= AuthConstant.USER_ROLE_ADMIN
         ) {
@@ -241,12 +242,12 @@ public class AuthController {
     @PostMapping("/reissueToken")
     public ResponseEntity reissueToken(String token) {
 
-        UserModel user = jwtTokenProvider.getUserWithValidation(token);
-
-        if (user == null) {
-            Pair<Integer, String> validChecker = jwtTokenProvider.isValidUserWithMessage(token);
+        Pair<Integer, String> validChecker = jwtTokenProvider.isTokenValid(token);
+        if (validChecker != null) {
             return ResponseEntity.status(validChecker.a).body(validChecker.b);
         }
+        Long userId = jwtTokenProvider.getUserId(token);
+        UserModel user = userService.findById(userId);
 
         if (user.getUserRole() < 0) {
             return ResponseEntity.badRequest().body("not verified user");
